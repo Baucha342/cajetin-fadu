@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cajetín FADU-UNL</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  /* fixed black-on-white look, by request — no dark-mode variant */
+  :root{
+    --paper:#ffffff;
+    --paper-2:#ffffff;
+    --ink:#000000;
+    --line:#000000;
+    --line-soft:#555555;
+    --muted:#767676;
+    --field-text:#000000;
+    --field-bg-hover:#f2f2f2;
+    --field-bg-focus:#e8e8e8;
+    --ring:#000000;
+    --paper-grid: rgba(0,0,0,0.045);
+    color-scheme: light;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, var(--paper-grid) 0 1px, transparent 1px 28px),
+      repeating-linear-gradient(90deg, var(--paper-grid) 0 1px, transparent 1px 28px);
+    color:var(--ink);
+    font-family:"Archivo", system-ui, sans-serif;
+    padding-inline:16px;
+    padding-block: max(28px, env(safe-area-inset-top, 0px)) 40px;
+  }
+
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  .eyebrow{
+    font-family:"JetBrains Mono", monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:"Archivo", sans-serif;
+    font-weight:700;
+    font-size:clamp(22px,3.4vw,30px);
+    margin:0 0 10px;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    font-size:14.5px;
+    line-height:1.55;
+    color:var(--line-soft);
+    max-width:62ch;
+    margin:0 0 22px;
+  }
+  .lede b{ color:var(--ink); font-weight:600; }
+
+  .toolbar{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  button.clear{
+    font-family:"JetBrains Mono", monospace;
+    font-size:12.5px;
+    letter-spacing:.03em;
+    color:var(--ink);
+    background:transparent;
+    border:1.5px solid var(--line);
+    padding:8px 14px;
+    border-radius:2px;
+    cursor:pointer;
+    transition: background .15s ease;
+  }
+  button.clear:hover{ background:var(--field-bg-hover); }
+  button.clear:focus-visible{ outline:2px solid var(--ring); outline-offset:2px; }
+  button.clear:disabled{ opacity:.5; cursor:default; }
+  button.clear:disabled:hover{ background:transparent; }
+  button.add{ border-color:var(--field-text); color:var(--field-text); }
+  button.add:hover{ background:var(--field-bg-hover); }
+
+  .row-del{
+    position:absolute;
+    top:2px;
+    right:2px;
+    width:18px;
+    height:18px;
+    line-height:16px;
+    padding:0;
+    border:1px solid var(--line-soft);
+    border-radius:50%;
+    background:var(--paper);
+    color:var(--line-soft);
+    font-family:"JetBrains Mono", monospace;
+    font-size:12px;
+    cursor:pointer;
+    opacity:.55;
+    transition: opacity .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .row-del:hover{ opacity:1; color:var(--ink); border-color:var(--ink); }
+  .row-del:focus-visible{ outline:2px solid var(--ring); outline-offset:1px; opacity:1; }
+  .save-note{
+    font-family:"JetBrains Mono", monospace;
+    font-size:11.5px;
+    color:var(--muted);
+  }
+  .save-note.flash{ color: var(--field-text); }
+
+  .tb-scroll{
+    overflow-x:auto;
+    border:2px solid var(--line);
+    background:var(--paper);
+  }
+
+  table.titleblock{
+    border-collapse:collapse;
+    table-layout:fixed;
+    width:100%;
+    min-width:1420px;
+    font-family:"Archivo", sans-serif;
+  }
+  table.titleblock td{
+    border:1.4px solid var(--line);
+    padding:0;
+    vertical-align:top;
+    overflow:hidden;
+  }
+
+  /* ---- printed (non-editable) labels ---- */
+  .lbl{
+    display:block;
+    font-weight:600;
+    padding:3px 8px 1px;
+    line-height:1.15;
+  }
+  .lbl-sm{ font-size:23px; }
+  .lbl-md{ font-size:25px; }
+
+  td.center{ text-align:center; }
+  .headcell{
+    display:flex;
+    align-items:center;
+    justify-content:flex-start;
+    height:100%;
+    font-weight:700;
+    font-size:28px;
+    text-align:left;
+    padding:2px 8px;
+  }
+
+  /* ---- editable fields ---- */
+  [contenteditable="true"]{
+    font-family:"JetBrains Mono", monospace;
+    color:var(--field-text);
+    font-size:26px;
+    line-height:1.15;
+    outline:none;
+    cursor:text;
+    transition: background .12s ease;
+  }
+  [contenteditable="true"]:hover{ background:var(--field-bg-hover); }
+  [contenteditable="true"]:focus{ background:var(--field-bg-focus); box-shadow: inset 0 0 0 1.5px var(--ring); }
+  [contenteditable="true"]:empty::before{
+    content: attr(data-placeholder);
+    color: var(--muted);
+    font-style:italic;
+  }
+
+  td.field-cell{ height:100%; }
+  td.field-cell [contenteditable]{
+    width:100%; height:100%; min-height:100%;
+    padding:4px 8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    white-space:pre-wrap; word-break:break-word;
+  }
+
+  .stack{ display:flex; flex-direction:column; height:100%; }
+  .stack .fill{
+    flex:1 1 auto; padding:4px 8px; min-height:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    white-space:pre-wrap; word-break:break-word;
+  }
+
+  .slash-row{
+    display:flex; align-items:baseline; justify-content:center; gap:6px;
+    padding:1px 8px 6px;
+    font-family:"JetBrains Mono", monospace;
+  }
+  .slash-row .sep{ color:var(--line-soft); }
+  .mini{
+    min-width:52px;
+    padding:1px 4px;
+    text-align:center;
+    border-bottom:1.2px solid var(--line-soft);
+  }
+
+  .materiales-edit{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:2px;
+    line-height:1.25;
+    padding:4px 10px;
+  }
+  .materiales-edit .mline{ width:100%; text-align:center; padding:1px 4px; border-radius:2px; }
+  .materiales-edit .mline-main{ font-weight:700; font-size:25px; }
+  .materiales-edit .mline-sub{ font-weight:500; font-size:21px; }
+
+  .icon-cell{
+    height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+  }
+  .icon-cell svg{ width:78%; height:78%; }
+  .icon-cell svg *{ stroke:var(--line); }
+
+  /* row heights */
+  tr.r-blank td{ height:54px; }
+  tr.r-head td{ height:78px; }
+  tr.r-sig td{ height:66px; }
+  tr.r-tall td{ height:184px; }
+  tr.r-icon td{ height:116px; }
+  tr.r-fmt td{ height:84px; }
+
+  footer{
+    margin-top:16px;
+    font-size:12px;
+    color:var(--muted);
+    max-width:62ch;
+    line-height:1.5;
+  }
+
+  @media (max-width: 480px){
+    h1{ font-size:20px; }
+    .lede{ font-size:13.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="eyebrow">FADU-UNL · Materiales y Procesos I · 2026</p>
+  <h1>Cajetín para plano</h1>
+  <p class="lede">Plantilla del rótulo lista para completar, siempre editable. Hice clic sobre cualquier casilla en blanco para escribir — <b>no trae renglones</b> arriba del encabezado por defecto: sumalos con "+ Agregar renglón" a medida que los necesites. El recuadro de la materia también se puede reescribir.</p>
+
+  <div class="toolbar">
+    <button class="clear add" type="button" id="addRowBtn">+ Agregar renglón</button>
+    <button class="clear" type="button" id="clearBtn">Borrar todos los campos</button>
+    <button class="clear" type="button" id="pdfBtn">Descargar PDF</button>
+    <button class="clear" type="button" id="jpgBtn">Descargar JPG</button>
+  </div>
+  <p class="save-note" id="saveNote">Los datos se guardan automáticamente en este navegador.</p>
+
+  <div class="tb-scroll">
+    <table class="titleblock" id="titleblock">
+      <colgroup>
+        <col style="width:5.625%">
+        <col style="width:5.625%">
+        <col style="width:3.625%">
+        <col style="width:11.375%">
+        <col style="width:7.5%">
+        <col style="width:11.4375%">
+        <col style="width:4.8125%">
+        <col style="width:13.125%">
+        <col style="width:6.25%">
+        <col style="width:6.875%">
+        <col style="width:14.375%">
+        <col style="width:9.375%">
+      </colgroup>
+      <tbody>
+
+        <!-- no blank BOM rows by default — use "+ Agregar renglón" to add them -->
+
+        <!-- header row -->
+        <tr class="r-head">
+          <td><div class="headcell">Pos.</div></td>
+          <td><div class="headcell">Cant.</div></td>
+          <td colspan="3"><div class="headcell">Denominación</div></td>
+          <td colspan="2"><div class="headcell">Nº Plano</div></td>
+          <td><div class="headcell">Nº de pieza</div></td>
+          <td colspan="2"><div class="headcell">Material</div></td>
+          <td colspan="2"><div class="headcell">Observaciones</div></td>
+        </tr>
+
+        <!-- Proyectó -->
+        <tr class="r-sig">
+          <td rowspan="4" colspan="3">
+            <div class="stack">
+              <span class="lbl lbl-sm">Tolerancias<br>generales</span>
+              <div class="fill" contenteditable="true" data-placeholder="" data-f="tolerancias"></div>
+            </div>
+          </td>
+          <td><span class="lbl lbl-md" style="padding-top:9px">Proyectó</span></td>
+          <td class="field-cell" colspan="2"><div contenteditable="true" data-placeholder="" data-f="proyecto"></div></td>
+          <td rowspan="4" colspan="3">
+            <div class="stack">
+              <span class="lbl lbl-md">Cliente (JTP):</span>
+              <div class="fill" contenteditable="true" data-placeholder="" data-f="cliente"></div>
+            </div>
+          </td>
+          <td rowspan="4" colspan="3" class="field-cell"><div contenteditable="true" data-placeholder="" data-f="obs-libre"></div></td>
+        </tr>
+        <!-- Dibujó -->
+        <tr class="r-sig">
+          <td><span class="lbl lbl-md" style="padding-top:9px">Dibujó</span></td>
+          <td class="field-cell" colspan="2"><div contenteditable="true" data-placeholder="" data-f="dibujo"></div></td>
+        </tr>
+        <!-- Revisó -->
+        <tr class="r-sig">
+          <td><span class="lbl lbl-md" style="padding-top:9px">Revisó</span></td>
+          <td class="field-cell" colspan="2"><div contenteditable="true" data-placeholder="" data-f="reviso"></div></td>
+        </tr>
+        <!-- Aprobó -->
+        <tr class="r-sig">
+          <td><span class="lbl lbl-md" style="padding-top:9px">Aprobó</span></td>
+          <td class="field-cell" colspan="2"><div contenteditable="true" data-placeholder="" data-f="aprobo"></div></td>
+        </tr>
+
+        <!-- Escala / Denominación grande / Materiales -->
+        <tr class="r-tall">
+          <td colspan="3">
+            <div class="stack">
+              <span class="lbl lbl-md">Escala</span>
+              <div class="fill" contenteditable="true" data-placeholder="p. ej. 1:1" data-f="escala"></div>
+            </div>
+          </td>
+          <td rowspan="3" colspan="6">
+            <div class="stack">
+              <span class="lbl lbl-md">Denominación</span>
+              <div class="fill" contenteditable="true" data-placeholder="" data-f="denominacion-pieza"></div>
+            </div>
+          </td>
+          <td colspan="3">
+            <div class="materiales-edit" role="group" aria-label="Datos de cátedra">
+              <div class="mline mline-main" contenteditable="true" data-placeholder="Materia" data-f="materia-linea1">Materiales y Procesos I</div>
+              <div class="mline mline-sub" contenteditable="true" data-placeholder="Carrera" data-f="materia-linea2">Lic. en Diseño Industrial</div>
+              <div class="mline mline-sub" contenteditable="true" data-placeholder="Cátedra / Año" data-f="materia-linea3">FADU-UNL 2026</div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- icono / Nº Plano cliente -->
+        <tr class="r-icon">
+          <td colspan="3">
+            <div class="icon-cell" aria-label="Símbolo de proyección ortográfica">
+              <svg viewBox="0 0 140 80" fill="none" xmlns="http://www.w3.org/2000/svg" stroke-width="2">
+                <path d="M8 22 L54 34 L54 46 L8 58 Z"/>
+                <line x1="54" y1="34" x2="54" y2="46"/>
+                <circle cx="104" cy="40" r="26"/>
+                <circle cx="104" cy="40" r="10"/>
+                <line x1="104" y1="10" x2="104" y2="70"/>
+                <line x1="74" y1="40" x2="134" y2="40"/>
+              </svg>
+            </div>
+          </td>
+          <td colspan="3">
+            <div class="stack">
+              <span class="lbl lbl-md">Nº Plano cliente:</span>
+              <div class="slash-row">
+                <span contenteditable="true" class="mini" data-placeholder="" data-f="plano-cliente-1"></span>
+                <span class="sep">/</span>
+                <span contenteditable="true" class="mini" data-placeholder="" data-f="plano-cliente-2"></span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Formato / Nº de Plano / Pag -->
+        <tr class="r-fmt">
+          <td colspan="3">
+            <div class="stack">
+              <span class="lbl lbl-md">Formato</span>
+              <div class="fill" contenteditable="true" data-placeholder="A4 / A3…" data-f="formato"></div>
+            </div>
+          </td>
+          <td colspan="2">
+            <div class="stack">
+              <span class="lbl lbl-md">Nº de Plano:</span>
+              <div class="slash-row">
+                <span contenteditable="true" class="mini" data-placeholder="" data-f="plano-1"></span>
+                <span class="sep">/</span>
+                <span contenteditable="true" class="mini" data-placeholder="" data-f="plano-2"></span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="stack">
+              <span class="lbl lbl-md">Pag.</span>
+              <div class="slash-row">
+                <span contenteditable="true" class="mini" data-placeholder="" data-f="pag-1"></span>
+                <span class="sep">/</span>
+                <span contenteditable="true" class="mini" data-placeholder="" data-f="pag-2"></span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <footer>Usá "+ Agregar renglón" para sumar filas de piezas antes del encabezado Pos./Cant./Denominación (cada una con su × para eliminarla). "Descargar PDF/JPG" exporta el cajetín tal como está, respetando el ancho de la plantilla original — el alto se ajusta solo según los renglones que agregues. El símbolo del ángulo de proyección es el estándar ISO, se incluye solo como referencia gráfica.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(function(){
+  var STORE_KEY = 'cajetin-fadu-v1';
+  var fields = Array.prototype.slice.call(document.querySelectorAll('[contenteditable="true"]'));
+  var saveNote = document.getElementById('saveNote');
+  var saveTimer = null;
+
+  function safeGet(){
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function safeSet(data){
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+    catch(e){ /* storage unavailable, ignore */ }
+  }
+
+  // restore
+  var saved = safeGet();
+  fields.forEach(function(el){
+    var key = el.getAttribute('data-f');
+    if(key && saved[key]) el.textContent = saved[key];
+  });
+
+  function persist(){
+    var data = {};
+    fields.forEach(function(el){
+      var key = el.getAttribute('data-f');
+      if(key) data[key] = el.textContent;
+    });
+    safeSet(data);
+    if(saveNote){
+      saveNote.textContent = 'Guardado.';
+      saveNote.classList.add('flash');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function(){
+        saveNote.textContent = 'Los datos se guardan automáticamente en este navegador.';
+        saveNote.classList.remove('flash');
+      }, 1200);
+    }
+  }
+
+  var debounce = null;
+  fields.forEach(function(el){
+    el.addEventListener('input', function(){
+      clearTimeout(debounce);
+      debounce = setTimeout(persist, 400);
+    });
+    el.addEventListener('paste', function(e){
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+    if(el.classList.contains('mini')){
+      el.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      });
+    }
+  });
+
+  var clearBtn = document.getElementById('clearBtn');
+  if(clearBtn){
+    clearBtn.addEventListener('click', function(){
+      fields.forEach(function(el){ el.textContent = ''; });
+      safeSet({});
+      document.querySelectorAll('tr.r-blank.added').forEach(function(tr){ tr.remove(); });
+      safeSetExtra([]);
+      if(saveNote){
+        saveNote.textContent = 'Campos borrados.';
+        saveNote.classList.add('flash');
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(function(){
+          saveNote.textContent = 'Los datos se guardan automáticamente en este navegador.';
+          saveNote.classList.remove('flash');
+        }, 1200);
+      }
+    });
+  }
+
+  // ---- dynamic rows: add more renglones above the header ----
+  var EXTRA_KEY = 'cajetin-fadu-extra-v1';
+  var tbody = document.querySelector('#titleblock tbody');
+  var headRow = document.querySelector('tr.r-head');
+  var addBtn = document.getElementById('addRowBtn');
+
+  function safeGetExtra(){
+    try { return JSON.parse(localStorage.getItem(EXTRA_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function safeSetExtra(data){
+    try { localStorage.setItem(EXTRA_KEY, JSON.stringify(data)); }
+    catch(e){ /* storage unavailable, ignore */ }
+  }
+  function saveExtraRows(){
+    var rows = Array.prototype.slice.call(document.querySelectorAll('tr.r-blank.added'));
+    var data = rows.map(function(tr){
+      function get(role){ var el = tr.querySelector('[data-role="'+role+'"]'); return el ? el.textContent : ''; }
+      return { pos:get('pos'), cant:get('cant'), denom:get('denom'), plano:get('plano'), pieza:get('pieza'), material:get('material'), obs:get('obs') };
+    });
+    safeSetExtra(data);
+  }
+  function wireDynamicField(el){
+    el.addEventListener('input', function(){
+      clearTimeout(debounce);
+      debounce = setTimeout(saveExtraRows, 400);
+    });
+    el.addEventListener('paste', function(e){
+      e.preventDefault();
+      var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+  }
+  function makeCell(colspan, placeholder, role){
+    var td = document.createElement('td');
+    td.className = 'field-cell';
+    if(colspan) td.setAttribute('colspan', colspan);
+    var div = document.createElement('div');
+    div.setAttribute('contenteditable','true');
+    div.setAttribute('data-placeholder', placeholder);
+    div.setAttribute('data-role', role);
+    td.appendChild(div);
+    return { td:td, field:div };
+  }
+  function addRow(prefill, focus){
+    var tr = document.createElement('tr');
+    tr.className = 'r-blank added';
+
+    var cells = [
+      makeCell(null, '—', 'pos'),
+      makeCell(null, '—', 'cant'),
+      makeCell(3, 'Denominación', 'denom'),
+      makeCell(2, 'Nº Plano', 'plano'),
+      makeCell(null, 'Nº de pieza', 'pieza'),
+      makeCell(2, 'Material', 'material'),
+      makeCell(2, 'Observaciones', 'obs')
+    ];
+    cells.forEach(function(c){ tr.appendChild(c.td); wireDynamicField(c.field); });
+
+    var last = cells[cells.length - 1];
+    last.td.style.position = 'relative';
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'row-del';
+    delBtn.title = 'Eliminar este renglón';
+    delBtn.setAttribute('aria-label', 'Eliminar este renglón');
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', function(){
+      tr.remove();
+      saveExtraRows();
+    });
+    last.td.appendChild(delBtn);
+
+    if(prefill){
+      cells[0].field.textContent = prefill.pos || '';
+      cells[1].field.textContent = prefill.cant || '';
+      cells[2].field.textContent = prefill.denom || '';
+      cells[3].field.textContent = prefill.plano || '';
+      cells[4].field.textContent = prefill.pieza || '';
+      cells[5].field.textContent = prefill.material || '';
+      cells[6].field.textContent = prefill.obs || '';
+    }
+
+    tbody.insertBefore(tr, headRow);
+    if(focus) cells[0].field.focus();
+    return tr;
+  }
+
+  // restore any previously added rows
+  safeGetExtra().forEach(function(row){ addRow(row, false); });
+
+  if(addBtn){
+    addBtn.addEventListener('click', function(){
+      addRow(null, true);
+      saveExtraRows();
+    });
+  }
+
+  // ---- export: PDF / JPG (plain browser download — this is a standalone site) ----
+  var pdfBtn = document.getElementById('pdfBtn');
+  var jpgBtn = document.getElementById('jpgBtn');
+  var EXPORT_WIDTH = 1600; // matches the original plantilla's proportions
+
+  function setNote(text, isFlash){
+    if(!saveNote) return;
+    saveNote.textContent = text;
+    if(isFlash){
+      saveNote.classList.add('flash');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function(){
+        saveNote.textContent = 'Los datos se guardan automáticamente en este navegador.';
+        saveNote.classList.remove('flash');
+      }, 2200);
+    }
+  }
+
+  function downloadBlob(blob, filename){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+  }
+
+  function exportFilename(ext){
+    return 'cajetin-fadu.' + ext;
+  }
+
+  async function buildExportCanvas(){
+    if(document.fonts && document.fonts.ready){
+      try{ await document.fonts.ready; }catch(e){}
+    }
+
+    var srcTable = document.getElementById('titleblock');
+    var clone = srcTable.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.style.width = EXPORT_WIDTH + 'px';
+    clone.style.minWidth = EXPORT_WIDTH + 'px';
+
+    clone.querySelectorAll('.row-del').forEach(function(b){ b.remove(); });
+    clone.querySelectorAll('[contenteditable]').forEach(function(el){
+      el.removeAttribute('data-placeholder');
+    });
+
+    var paper = getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() || '#ffffff';
+
+    var holder = document.createElement('div');
+    holder.style.position = 'fixed';
+    holder.style.left = '-99999px';
+    holder.style.top = '0';
+    holder.style.background = paper;
+    holder.appendChild(clone);
+    document.body.appendChild(holder);
+
+    try{
+      var canvas = await window.html2canvas(clone, { scale: 2, backgroundColor: paper, useCORS: true });
+      return canvas;
+    } finally {
+      document.body.removeChild(holder);
+    }
+  }
+
+  async function withBusy(btn, label, fn){
+    var original = btn.textContent;
+    btn.disabled = true;
+    pdfBtn.disabled = true;
+    jpgBtn.disabled = true;
+    btn.textContent = label;
+    try{
+      await fn();
+    } finally {
+      btn.textContent = original;
+      pdfBtn.disabled = false;
+      jpgBtn.disabled = false;
+    }
+  }
+
+  if(pdfBtn){
+    pdfBtn.addEventListener('click', function(){
+      withBusy(pdfBtn, 'Generando…', async function(){
+        try{
+          setNote('Generando PDF…', false);
+          var canvas = await buildExportCanvas();
+          var jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
+          if(!jsPDFCtor) throw new Error('jsPDF no cargó');
+          var doc = new jsPDFCtor({ unit: 'px', format: [canvas.width, canvas.height] });
+          var imgData = canvas.toDataURL('image/jpeg', 0.95);
+          doc.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+          var blob = doc.output('blob');
+          downloadBlob(blob, exportFilename('pdf'));
+          setNote('PDF descargado.', true);
+        }catch(err){
+          console.error(err);
+          setNote('No se pudo generar el PDF. Probá de nuevo.', true);
+        }
+      });
+    });
+  }
+
+  if(jpgBtn){
+    jpgBtn.addEventListener('click', function(){
+      withBusy(jpgBtn, 'Generando…', async function(){
+        try{
+          setNote('Generando imagen…', false);
+          var canvas = await buildExportCanvas();
+          var blob = await new Promise(function(resolve){ canvas.toBlob(resolve, 'image/jpeg', 0.95); });
+          if(!blob) throw new Error('No se pudo generar la imagen');
+          downloadBlob(blob, exportFilename('jpg'));
+          setNote('Imagen descargada.', true);
+        }catch(err){
+          console.error(err);
+          setNote('No se pudo generar la imagen. Probá de nuevo.', true);
+        }
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

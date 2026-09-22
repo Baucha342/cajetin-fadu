@@ -1,0 +1,12 @@
+{
+  "name": "cajetin-fadu",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rotulo tecnico editable para planos de Materiales y Procesos I, FADU-UNL",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
